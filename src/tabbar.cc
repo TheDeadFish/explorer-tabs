@@ -4,31 +4,38 @@
 #include <conio.h>
 #include "util.h"
 
-static
-void getBarRect(HWND hwnd, RECT* rc)
-{
-	GetWindowRect(hwnd, rc);
-	rc->right -= rc->left+84;
-	rc->left = 24; rc->top = 4;
-	rc->bottom = 23;
-}
+#define MIN_TAB_WIDTH 100
+#define TAB_BTN_WIDTH 16
 
 struct TabBar
 {
 	struct Tab {
-		Tab *next, *prev;	
+		Tab *next;	
 		TabBar *tabBar;
 		HWND hwnd;
 		WCHAR *name, *path;
 		
 		void remove() { tabBar->remove(this); }
 		void move() { tabBar->move(this); }
+		
+		bool isSel() { return tabBar->curTab == this; }
 	};
+
+
+
 
 	Tab *firstTab;
 	Tab *curTab;
 	
+	int nTabIndex;
+	int nTabWidth;
 	
+	int nWndWidth;
+	
+	
+	
+	
+	bool scroll;
 	
 	void add(HWND hwnd);
 	void remove(Tab* tab);
@@ -36,6 +43,12 @@ struct TabBar
 	
 	void move(Tab* tab);
 	
+	void draw(HWND hwnd);
+	
+	void size(HWND hwnd);
+	
+	
+	RECT getRect() { return {24, 4, nWndWidth-60, 23}; }
 	
 };
 
@@ -46,8 +59,34 @@ void TabBar::add(HWND hwnd)
 {
 	Tab* tab = (Tab*)calloc(1, sizeof(Tab));
 	tab->tabBar = this; tab->hwnd = hwnd;
-	insert_before_root(firstTab, tab);
+	fwdlst_insert_end(&firstTab, tab);
 	curTab = tab; tabbar_setProp(hwnd, tab);
+	nWndWidth = INT_MIN;
+}
+
+void TabBar::size(HWND hwnd)
+{
+	int width = getWindowSize(hwnd).cx;
+	if(nWndWidth == width) return;
+	nWndWidth = width;
+	
+	// count number of tabs
+	int nTabs = 0; int nCurTab = 0;
+	for(Tab* tab = firstTab; tab; tab = tab->next) {
+		if(tab == curTab) nCurTab = nTabs; nTabs++; }
+		
+	// calculate tab width
+	nTabWidth = width / nTabs;
+	if(nTabWidth >= MIN_TAB_WIDTH) {
+		scroll = false; nTabIndex = 0; return; }
+		
+	// adjust nTabIndex
+	int nDispTab = (width-TAB_BTN_WIDTH*2) / nTabWidth;
+	int minIndex = (nCurTab-nDispTab)+1;
+	int maxIndex = (nTabs-nDispTab);
+	if(nTabIndex > nCurTab) nTabIndex = nCurTab;
+	if(nTabIndex < minIndex) nTabIndex = minIndex;
+	if(nTabIndex > maxIndex) nTabIndex = maxIndex;
 }
 
 #if 0
@@ -105,9 +144,14 @@ TabBar* createTabBar(void)
 }
 
 
+static
+TabBar::Tab* findTab(void) { return 
+	(TabBar::Tab*)tabbar_findTab(); }
 
 TabBar* findTabBar(void)
 {
+	auto tab = findTab();
+	if(tab) return tab->tabBar;
 	return NULL;
 }
 
@@ -120,13 +164,35 @@ void tabbar_create(HWND hwnd)
 }
 
 
-void tabbar_draw(HWND hwnd, TabBar* tab)
+
+
+void TabBar::draw(HWND hwnd)
 {
+	if(!firstTab) return;
+	size(hwnd);
+	
+	// get brush color to draw
+	HBRUSH hBrush;
+	if(GetForegroundWindow() == hwnd) {
+		hBrush = GetSysColorBrush(COLOR_ACTIVECAPTION);
+	} else {
+		hBrush = GetSysColorBrush(COLOR_INACTIVECAPTION); }
+		
+	
+		
+	// erase background
 	HDC hdc = GetWindowDC(hwnd);
-	RECT rc;
-	getBarRect(hwnd, &rc);
-	FillRect(hdc, &rc, 
-		GetSysColorBrush(COLOR_3DFACE));
+	RECT rc = getRect();
+	_cprintf("%d, %d, %d, %d\n", rc);
+	
+	
+	FillRect(hdc, &rc, hBrush);
+
+		
+		
+		
+		
+		
 	ReleaseDC(hwnd, hdc);
 }
 
@@ -137,42 +203,20 @@ void tabbar_msgRecv(UINT uMsg,
 	if(uMsg == MSG_CREATE) { 
 		tabbar_create(hwnd); return; }
 		
-	if((uMsg == MSG_TEXT)
-	||(uMsg == MSG_DRAW))
-		tabbar_draw(hwnd, 0);
+	auto* tab = tabbar_getTab(hwnd);
+	if(!tab) {
+		if(uMsg == MSG_TEXT) free((void*)lParam);
+		return ; }
 		
 		
-	//auto* tab = tabbar_getTab(hwnd);
-	
-	//if(
-	
-	
-	
-	/*if(!tab) {
-		if(uMsg == MSG_TEXT) {
-	
-	
-	}
-	
 	if(uMsg == MSG_TEXT) {
-		if(!tab)
-	
-		free((void*)lParam);
-	
-	
+		tab->name = (WCHAR*)lParam; 
+		tab->tabBar->draw(hwnd); }
+		
+	if(uMsg == MSG_DRAW) {
+		if(tab->isSel()) {
+			tab->tabBar->draw(hwnd);  }
 	}
-	
-	
-	
-	
-	//_cprintf("!!! %X\n", tab);
-	*/
-
-	
-	
-
-	//if(tab) { if(uMsg == MSG_DESTROY) tab->remove(); 
-	//	if(uMsg == MSG_MOVE) tab->move(); }
 }
 
 void tabbar_regClass(void)

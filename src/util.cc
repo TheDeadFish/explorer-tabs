@@ -8,3 +8,10 @@ WCHAR* getWindowText(HWND hwnd)
 	GetWindowTextW(hwnd, buff, 1984);
 	return wcsdup(buff);
 }
+
+
+SIZE getWindowSize(HWND hwnd)
+{
+	RECT rc; GetWindowRect(hwnd, &rc);
+	return {rc.right-rc.left, rc.bottom-rc.top};
+}

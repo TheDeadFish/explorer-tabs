@@ -1,6 +1,7 @@
 #pragma once
 
 WCHAR* getWindowText_(HWND hwnd);
+SIZE getWindowSize(HWND hwnd);
 
 
 template <class T>
@@ -32,3 +33,16 @@ void remove_before_root(T*& root, T* node) {
 		SetWindowLongPtr(hwnd, GWL_USERDATA, (LONG_PTR)This); \
 		__VA_ARGS__; return TRUE; } \
 	This = (type*)GetWindowLongPtr(hwnd, GWL_USERDATA);
+
+
+
+
+
+template <class T>
+void fwdlst_insert_end(T** root, T* node) {
+	while(*root) { root = (T**)*root; }
+	*root = node;
+}
+
+
+

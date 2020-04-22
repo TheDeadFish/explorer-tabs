@@ -38,7 +38,7 @@ struct TabBar
 	
 	
 	
-	bool scroll;
+	int scroll;
 	
 	RECT rc;
 	
@@ -59,12 +59,7 @@ struct TabBar
 	
 	
 	RECT getRect() { return rc; }
-	
-	
-	
-	
-	
-	
+	int clipRight() { return rc.right-scroll; }
 };
 
 static TabBar::Tab* tabbar_getTab(HWND hwnd) {
@@ -85,25 +80,24 @@ void TabBar::size(HWND hwnd)
 	if(nWndWidth == width) return;
 	nWndWidth = width;
 	rc = {24, 4, nWndWidth-60, 22};
+	width = rc.right-rc.left;
 	
 	// count number of tabs
 	int nTabs = 0; int nCurTab = 0;
 	for(Tab* tab = firstTab; tab; tab = tab->next) {
 		if(tab == curTab) nCurTab = nTabs; nTabs++; }
-	_cprintf("xxx %d\n", nTabs);
 		
 	// calculate tab width
 	nTabWidth = width / nTabs;
 	if(nTabWidth >= MIN_TAB_WIDTH) {
-		scroll = false; nTabIndex = 0; return; }
+		scroll = 0; nTabIndex = 0; return; }
+	scroll = TAB_BTN_WIDTH;
 		
 	// adjust nTabIndex
 	int nDispTab = (width-TAB_BTN_WIDTH*2) / nTabWidth;
-	int minIndex = (nCurTab-nDispTab)+1;
-	int maxIndex = (nTabs-nDispTab);
-	if(nTabIndex > nCurTab) nTabIndex = nCurTab;
-	if(nTabIndex < minIndex) nTabIndex = minIndex;
-	if(nTabIndex > maxIndex) nTabIndex = maxIndex;
+	max_ref(nTabIndex, nCurTab);
+	max_ref(nTabIndex, (nCurTab-nDispTab)+1);
+	min_ref(nTabIndex, nTabs-nDispTab);
 }
 
 #if 0
@@ -190,7 +184,6 @@ void TabBar::draw(HWND hwnd)
 
 	// erase background
 	HDC hdc = GetWindowDC(hwnd);
-	RECT rc = getRect();
 	BOOL active = GetForegroundWindow() == hwnd;
 	FillCaptionGradient(hdc, &rc, active);
 	
@@ -198,20 +191,47 @@ void TabBar::draw(HWND hwnd)
 	// setup text
 	SelectObject(hdc, s_hCaptionFont);
 	SetBkMode(hdc, TRANSPARENT);
+	SelectObject(hdc, GetStockObject(DC_PEN));
+	SetDCPenColor(hdc, GetSysColor(
+		COLOR_INACTIVECAPTIONTEXT));
+	
+	
+	RECT rc = getRect();
+	rc.left += scroll;
 	rc.top += 2; 
 
 	int nTabs = 0;
-	for(Tab* tab = firstTab; tab; tab = tab->next) {
-		if(nTabs++ < nTabIndex) continue;
+	for(Tab* tab = firstTab; tab; tab = tab->next, nTabs++) {
+		if(nTabs < nTabIndex) continue;
+		if(rc.left >= clipRight()) break;
 		
 		setCaptionColor(hdc, active && (tab == curTab));
-		rc.right = rc.left + nTabWidth;
+		
+		// 
+		
+		
+		rc.right = clipRight();
+		if(tab->next) { min_ref(rc.right,
+			rc.left+nTabWidth); }
+			
+		
+		if(nTabs) {
+			MoveToEx(hdc, rc.left, this->rc.top, NULL);
+			LineTo(hdc, rc.left, this->rc.bottom);
+		 rc.left += 5; 
+		
+		}
+
+		rc.right -= 2;
 		DrawTextW(hdc, tab->name, -1, &rc, 0);
-		
-		
-		
+		rc.right += 2;
+		if(nTabs) rc.left -= 5;
 		
 		rc.left += nTabWidth;
+		
+		
+		
+		
 		
 	}
 		

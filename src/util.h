@@ -1,4 +1,5 @@
 #pragma once
+#include <stdshit/min_max.h>
 
 WCHAR* getWindowText_(HWND hwnd);
 SIZE getWindowSize(HWND hwnd);
@@ -52,6 +53,3 @@ void fwdlst_insert_end(T** root, T* node) {
 extern "C"
 LONG WINAPI GdiGetCharDimensions(
   HDC hdc, LPTEXTMETRICW lptm, LONG* height);
-	
-
-	

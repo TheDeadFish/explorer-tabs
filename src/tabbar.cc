@@ -58,11 +58,28 @@ struct TabBar
 	
 	bool isSel(Tab* tab) { return 
 		tabs[nTabSel] == tab; }
+		
+		
+		
+	RECT getRect(int i);
+		
 	
 };
 
 static TabBar::Tab* tabbar_getTab(HWND hwnd) {
 	return (TabBar::Tab*)tabbar_getProp(hwnd); }
+	
+RECT TabBar::getRect(int i)
+{
+	int x1 = rc.left+scroll; 
+	int x2 = rc.right-scroll;
+	if(i < 0) { swapReg(x1, x2);
+		if(i == -1) x1 = rc.left;
+		else x2 = rc.right; 
+	} else { x1 += (i-nTabScroll)*nTabWidth;
+		if((i+1) != nTabs) min_ref(x2, x1+nTabWidth); }
+	return {x1, rc.top, x2, rc.bottom};
+}
 	
 void TabBar::add(Tab* tab)
 {
@@ -194,46 +211,22 @@ void TabBar::draw(HWND hwnd)
 	SetDCPenColor(hdc, GetSysColor(
 		COLOR_INACTIVECAPTIONTEXT));
 	
-	
-	RECT rc = getRect();
-	rc.left += scroll;
-	rc.top += 2; 
-	
-	_cprintf("xxx %d, %d\n", nTabScroll, nTabs);
-	
 	for(int i = nTabScroll; i < nTabs; i++)
 	{	
-		Tab* tab = tabs[i];
-		if(rc.left >= clipRight()) break;
-		
-		
-		
-		setCaptionColor(hdc, active && (i == nTabSel));
-		
-		// 
-		rc.right = clipRight();
-		//if(tab->next) { min_ref(rc.right,
-		//	rc.left+nTabWidth); }
-		rc.right -= 2;
+		RECT rc = getRect(i);
+		if(rc.left >= clipRight()) 
+			break;
 			
-		
-		if(nTabs) {
+		// draw the divider
+		if(i != nTabScroll) {
 			MoveToEx(hdc, rc.left, this->rc.top, NULL);
 			LineTo(hdc, rc.left, this->rc.bottom);
-		 rc.left += 5; 
-		
-		}
+		 rc.left += 5; }
 
-		DrawTextW(hdc, tab->name, -1, &rc, 0);
-		rc.right += 2;
-		if(nTabs) rc.left -= 5;
-		
-		rc.left += nTabWidth;
-		
-		
-		
-		
-		
+		// draw the caption text
+		rc.right -= 2; rc.top += 2;
+		setCaptionColor(hdc, active && (i == nTabSel));
+		DrawTextW(hdc, tabs[i]->name, -1, &rc, 0);
 	}
 		
 	ReleaseDC(hwnd, hdc);

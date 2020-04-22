@@ -8,6 +8,7 @@
 #define TAB_BTN_WIDTH 16
 
 HFONT s_hCaptionFont;
+int s_gcyCaptionFontChar;
 
 struct TabBar
 {
@@ -39,6 +40,13 @@ struct TabBar
 	
 	bool scroll;
 	
+	RECT rc;
+	
+	
+	
+	
+	
+	
 	void add(HWND hwnd);
 	void remove(Tab* tab);
 	
@@ -50,8 +58,11 @@ struct TabBar
 	void size(HWND hwnd);
 	
 	
-	RECT getRect() { return {24, 4, nWndWidth-60, 22}; }
-
+	RECT getRect() { return rc; }
+	
+	
+	
+	
 	
 	
 };
@@ -73,11 +84,13 @@ void TabBar::size(HWND hwnd)
 	int width = getWindowSize(hwnd).cx;
 	if(nWndWidth == width) return;
 	nWndWidth = width;
+	rc = {24, 4, nWndWidth-60, 22};
 	
 	// count number of tabs
 	int nTabs = 0; int nCurTab = 0;
 	for(Tab* tab = firstTab; tab; tab = tab->next) {
 		if(tab == curTab) nCurTab = nTabs; nTabs++; }
+	_cprintf("xxx %d\n", nTabs);
 		
 	// calculate tab width
 	nTabWidth = width / nTabs;
@@ -178,23 +191,29 @@ void TabBar::draw(HWND hwnd)
 	// erase background
 	HDC hdc = GetWindowDC(hwnd);
 	RECT rc = getRect();
-	//_cprintf("%d, %d, %d, %d\n", rc);
-		
-	FillCaptionGradient(hdc, &rc, 
-		GetForegroundWindow() == hwnd);
-		
+	BOOL active = GetForegroundWindow() == hwnd;
+	FillCaptionGradient(hdc, &rc, active);
 	
+	
+	// setup text
+	SelectObject(hdc, s_hCaptionFont);
+	SetBkMode(hdc, TRANSPARENT);
+	rc.top += 2; 
 
-	int nTabs = 0; int nCurTab = 0;
+	int nTabs = 0;
 	for(Tab* tab = firstTab; tab; tab = tab->next) {
-		if(tab == curTab) nCurTab = nTabs; nTabs++; }
+		if(nTabs++ < nTabIndex) continue;
+		
+		setCaptionColor(hdc, active && (tab == curTab));
+		rc.right = rc.left + nTabWidth;
+		DrawTextW(hdc, tab->name, -1, &rc, 0);
 		
 		
 		
 		
+		rc.left += nTabWidth;
 		
-		
-		
+	}
 		
 	ReleaseDC(hwnd, hdc);
 }
@@ -225,4 +244,6 @@ void tabbar_msgRecv(UINT uMsg,
 void tabbar_regClass(void)
 {
 	s_hCaptionFont = getCaptionFont();
+	SIZE size = getFontDimention(s_hCaptionFont);
+	s_gcyCaptionFontChar = size.cy;
 }

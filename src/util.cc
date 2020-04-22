@@ -63,3 +63,20 @@ HFONT getCaptionFont()
 	SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(ncm), &ncm, 0);
 	return CreateFontIndirect(&ncm.lfCaptionFont);
 }
+
+SIZE getFontDimention(HFONT hFont)
+{
+	HDC hdc = GetDC(NULL);
+	SelectObject(hdc, hFont); LONG height;
+	LONG width = GdiGetCharDimensions(hdc, 0, &height);
+	ReleaseDC(NULL, hdc);
+	return {width, height};
+}
+
+void setCaptionColor(HDC hdc, BOOL fActive)
+{
+	COLORREF color;
+	if(fActive) { color = GetSysColor(COLOR_CAPTIONTEXT);
+	} else { color = GetSysColor(COLOR_INACTIVECAPTIONTEXT); }
+	SetTextColor(hdc, color);
+}

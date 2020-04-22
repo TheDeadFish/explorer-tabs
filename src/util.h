@@ -5,6 +5,8 @@ SIZE getWindowSize(HWND hwnd);
 void FillCaptionGradient(HDC hdc, 
 	LPCRECT prc, BOOL fActive);
 HFONT getCaptionFont();
+SIZE getFontDimention(HFONT hFont);
+void setCaptionColor(HDC hdc, BOOL fActive);
 
 
 template <class T>
@@ -47,8 +49,9 @@ void fwdlst_insert_end(T** root, T* node) {
 	*root = node;
 }
 
+extern "C"
+LONG WINAPI GdiGetCharDimensions(
+  HDC hdc, LPTEXTMETRICW lptm, LONG* height);
+	
 
-
-
-
-
+	

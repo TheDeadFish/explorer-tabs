@@ -8,5 +8,5 @@ set( LIBRARY_OUTPUT_PATH ../bin)
 
 add_link_options("-Wl,--large-address-aware")
 add_library(test MODULE src/main.cc src/tabbar.cc src/util.cc src/hookproc.cc)
-target_link_libraries(test -lexshit)
+target_link_libraries(test -lexshit -lgdi32)
 target_link_options(test PRIVATE -nostartfiles)

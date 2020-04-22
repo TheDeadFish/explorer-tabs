@@ -2,6 +2,9 @@
 
 WCHAR* getWindowText_(HWND hwnd);
 SIZE getWindowSize(HWND hwnd);
+void FillCaptionGradient(HDC hdc, 
+	LPCRECT prc, BOOL fActive);
+HFONT getCaptionFont();
 
 
 template <class T>
@@ -43,6 +46,9 @@ void fwdlst_insert_end(T** root, T* node) {
 	while(*root) { root = (T**)*root; }
 	*root = node;
 }
+
+
+
 
 
 

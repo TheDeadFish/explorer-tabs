@@ -7,6 +7,8 @@
 #define MIN_TAB_WIDTH 100
 #define TAB_BTN_WIDTH 16
 
+HFONT s_hCaptionFont;
+
 struct TabBar
 {
 	struct Tab {
@@ -48,7 +50,9 @@ struct TabBar
 	void size(HWND hwnd);
 	
 	
-	RECT getRect() { return {24, 4, nWndWidth-60, 23}; }
+	RECT getRect() { return {24, 4, nWndWidth-60, 22}; }
+
+	
 	
 };
 
@@ -170,24 +174,23 @@ void TabBar::draw(HWND hwnd)
 {
 	if(!firstTab) return;
 	size(hwnd);
-	
-	// get brush color to draw
-	HBRUSH hBrush;
-	if(GetForegroundWindow() == hwnd) {
-		hBrush = GetSysColorBrush(COLOR_ACTIVECAPTION);
-	} else {
-		hBrush = GetSysColorBrush(COLOR_INACTIVECAPTION); }
-		
-	
-		
+
 	// erase background
 	HDC hdc = GetWindowDC(hwnd);
 	RECT rc = getRect();
-	_cprintf("%d, %d, %d, %d\n", rc);
+	//_cprintf("%d, %d, %d, %d\n", rc);
+		
+	FillCaptionGradient(hdc, &rc, 
+		GetForegroundWindow() == hwnd);
+		
 	
-	
-	FillRect(hdc, &rc, hBrush);
 
+	int nTabs = 0; int nCurTab = 0;
+	for(Tab* tab = firstTab; tab; tab = tab->next) {
+		if(tab == curTab) nCurTab = nTabs; nTabs++; }
+		
+		
+		
 		
 		
 		
@@ -221,11 +224,5 @@ void tabbar_msgRecv(UINT uMsg,
 
 void tabbar_regClass(void)
 {
-	//WNDCLASSEXW wc = {sizeof(WNDCLASSEX)};
-//	wc.lpfnWndProc   = tabbar_wndProc;
-	//wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
-	//wc.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
-	//wc.lpszClassName = L"dfTabBar";
-
-	//s_clssAtom = RegisterClassExW(&wc);
+	s_hCaptionFont = getCaptionFont();
 }

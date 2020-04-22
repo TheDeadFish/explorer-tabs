@@ -1,5 +1,6 @@
 #include <windows.h>
 #include "tabbar.h"
+#include "util.h"
 
 WNDPROC tabbar_prevProc;
 static DWORD s_idThread;
@@ -28,9 +29,9 @@ void tabbar_setProp(HWND hwnd, void* slot)
 		s_propAtom), (HANDLE)slot); 
 }
 
-void* tabbar_getProp(HWND hwnd) 
+tabbar_t* tabbar_getProp(HWND hwnd) 
 {
-	return (void*)GetPropW(hwnd,
+	return (tabbar_t*)GetPropW(hwnd,
 		MAKEINTATOM(s_propAtom)); 
 }
 
@@ -45,10 +46,43 @@ void tabbar_msgSend(HWND hwnd, int msg, void* arg=0)
 	PostThreadMessage(s_idThread, msg, (WPARAM)hwnd, (LPARAM)arg);
 }
 
+#include <conio.h>
+
+static
+LRESULT tabbar_mouse(HWND hwnd, UINT uMsg,
+	WPARAM wParam, LPARAM lParam)
+{
+	// filter mouse message
+	if((uMsg != WM_NCMOUSEMOVE)
+	&&(uMsg != WM_NCLBUTTONDOWN)
+	&&(uMsg != WM_NCLBUTTONUP)) return 0;
+	tabbar_t* This = tabbar_getProp(hwnd);
+	if(!This) return 0;
+	
+	// mouse button down
+	if(uMsg == WM_NCLBUTTONDOWN) {
+		if(wParam != HTCAPTION) {
+			This->lbPend = 0; return 0; }
+		This->lbPend = lParam; return 1;
+	}
+	
+	// mouse move
+	if(This->lbPend == 0) return 0;
+	if(uMsg == WM_NCMOUSEMOVE) {
+		tabbar_prevProc(hwnd, WM_NCLBUTTONDOWN,
+			HTCAPTION, This->lbPend);
+		This->lbPend = 0; return 0;
+	}
+	
+	// mouse button up
+	_cprintf("button up\n");
+	This->lbPend = 0; return 0;
+}
 
 LRESULT CALLBACK tabbar_hookProc(HWND hwnd, 
 	UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
+{	
+	IFRET(tabbar_mouse(hwnd, uMsg, wParam, lParam));
 	LRESULT lResult = tabbar_prevProc(
 		hwnd, uMsg, wParam, lParam);
 		

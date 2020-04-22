@@ -12,9 +12,9 @@ int s_gcyCaptionFontChar;
 
 struct TabBar
 {
-	struct Tab {
+	struct Tab : tabbar_t {
 		TabBar *tabBar;
-		HWND hwnd;
+		
 		WCHAR *name, *path;
 		
 		void remove() { tabBar->remove(this); }

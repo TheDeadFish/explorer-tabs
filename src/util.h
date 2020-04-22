@@ -55,3 +55,6 @@ LONG WINAPI GdiGetCharDimensions(
   HDC hdc, LPTEXTMETRICW lptm, LONG* height);
 	
 #define swapReg(x, y) asm("XCHG %0, %1" : "+r"(x), "+r"(y));
+
+#define IFRET(x) if(auto y = x) return y;
+

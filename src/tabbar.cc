@@ -13,27 +13,19 @@ int s_gcyCaptionFontChar;
 struct TabBar
 {
 	struct Tab {
-		Tab *next;	
 		TabBar *tabBar;
 		HWND hwnd;
 		WCHAR *name, *path;
 		
 		void remove() { tabBar->remove(this); }
 		void move() { tabBar->move(this); }
-		
-		bool isSel() { return tabBar->curTab == this; }
+		bool isSel() { return tabBar->isSel(this); }
 	};
 
 
-
-
-	Tab *firstTab;
-	Tab *curTab;
-	
-	int nTabIndex;
-	int nTabWidth;
-	
-	int nWndWidth;
+	Tab** tabs; int nTabs;
+	int nTabScroll, nTabSel;
+	int nTabWidth, nWndWidth;
 	
 	
 	
@@ -60,18 +52,33 @@ struct TabBar
 	
 	RECT getRect() { return rc; }
 	int clipRight() { return rc.right-scroll; }
+	
+	void add(Tab* tab);
+	
+	
+	bool isSel(Tab* tab) { return 
+		tabs[nTabSel] == tab; }
+	
 };
 
 static TabBar::Tab* tabbar_getTab(HWND hwnd) {
 	return (TabBar::Tab*)tabbar_getProp(hwnd); }
+	
+void TabBar::add(Tab* tab)
+{
+	nTabSel = nTabs;
+	tabs = (Tab**)realloc(tabs,
+		(++nTabs)*sizeof(Tab*));
+	tabs[nTabSel] = tab;
+	nWndWidth = INT_MIN;
+}
 
 void TabBar::add(HWND hwnd)
 {
 	Tab* tab = (Tab*)calloc(1, sizeof(Tab));
 	tab->tabBar = this; tab->hwnd = hwnd;
-	fwdlst_insert_end(&firstTab, tab);
-	curTab = tab; tabbar_setProp(hwnd, tab);
-	nWndWidth = INT_MIN;
+	tabbar_setProp(hwnd, tab);
+	this->add(tab);
 }
 
 void TabBar::size(HWND hwnd)
@@ -81,23 +88,18 @@ void TabBar::size(HWND hwnd)
 	nWndWidth = width;
 	rc = {24, 4, nWndWidth-60, 22};
 	width = rc.right-rc.left;
-	
-	// count number of tabs
-	int nTabs = 0; int nCurTab = 0;
-	for(Tab* tab = firstTab; tab; tab = tab->next) {
-		if(tab == curTab) nCurTab = nTabs; nTabs++; }
 		
 	// calculate tab width
 	nTabWidth = width / nTabs;
 	if(nTabWidth >= MIN_TAB_WIDTH) {
-		scroll = 0; nTabIndex = 0; return; }
+		scroll = 0; nTabScroll = 0; return; }
 	scroll = TAB_BTN_WIDTH;
 		
 	// adjust nTabIndex
 	int nDispTab = (width-TAB_BTN_WIDTH*2) / nTabWidth;
-	max_ref(nTabIndex, nCurTab);
-	max_ref(nTabIndex, (nCurTab-nDispTab)+1);
-	min_ref(nTabIndex, nTabs-nDispTab);
+	max_ref(nTabScroll, nTabSel);
+	max_ref(nTabScroll, (nTabSel-nDispTab)+1);
+	min_ref(nTabScroll, nTabs-nDispTab);
 }
 
 #if 0
@@ -147,13 +149,10 @@ TabBar* findTabBar(void)
 
 TabBar* createTabBar(void)
 {
-	TabBar* This = (TabBar*) calloc(1, sizeof(TabBar));
-	
-	
-	
+	TabBar* This = (TabBar*) 
+		calloc(1, sizeof(TabBar));
 	return This;
 }
-
 
 static
 TabBar::Tab* findTab(void) { return 
@@ -179,7 +178,7 @@ void tabbar_create(HWND hwnd)
 
 void TabBar::draw(HWND hwnd)
 {
-	if(!firstTab) return;
+	if(!nTabs) return;
 	size(hwnd);
 
 	// erase background
@@ -199,20 +198,23 @@ void TabBar::draw(HWND hwnd)
 	RECT rc = getRect();
 	rc.left += scroll;
 	rc.top += 2; 
-
-	int nTabs = 0;
-	for(Tab* tab = firstTab; tab; tab = tab->next, nTabs++) {
-		if(nTabs < nTabIndex) continue;
+	
+	_cprintf("xxx %d, %d\n", nTabScroll, nTabs);
+	
+	for(int i = nTabScroll; i < nTabs; i++)
+	{	
+		Tab* tab = tabs[i];
 		if(rc.left >= clipRight()) break;
 		
-		setCaptionColor(hdc, active && (tab == curTab));
+		
+		
+		setCaptionColor(hdc, active && (i == nTabSel));
 		
 		// 
-		
-		
 		rc.right = clipRight();
-		if(tab->next) { min_ref(rc.right,
-			rc.left+nTabWidth); }
+		//if(tab->next) { min_ref(rc.right,
+		//	rc.left+nTabWidth); }
+		rc.right -= 2;
 			
 		
 		if(nTabs) {
@@ -222,7 +224,6 @@ void TabBar::draw(HWND hwnd)
 		
 		}
 
-		rc.right -= 2;
 		DrawTextW(hdc, tab->name, -1, &rc, 0);
 		rc.right += 2;
 		if(nTabs) rc.left -= 5;

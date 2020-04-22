@@ -103,7 +103,7 @@ void TabBar::size(HWND hwnd)
 	int width = getWindowSize(hwnd).cx;
 	if(nWndWidth == width) return;
 	nWndWidth = width;
-	rc = {24, 4, nWndWidth-60, 22};
+	rc = {23, 4, nWndWidth-58, 22};
 	width = rc.right-rc.left;
 		
 	// calculate tab width
@@ -195,7 +195,7 @@ void tabbar_create(HWND hwnd)
 
 void TabBar::draw(HWND hwnd)
 {
-	if(!nTabs) return;
+	if(nTabs < 2) return;
 	size(hwnd);
 
 	// erase background
@@ -214,21 +214,42 @@ void TabBar::draw(HWND hwnd)
 	for(int i = nTabScroll; i < nTabs; i++)
 	{	
 		RECT rc = getRect(i);
-		if(rc.left >= clipRight()) 
-			break;
 			
 		// draw the divider
 		if(i != nTabScroll) {
 			MoveToEx(hdc, rc.left, this->rc.top, NULL);
 			LineTo(hdc, rc.left, this->rc.bottom);
-		 rc.left += 5; }
+		 rc.left += 4; }
 
 		// draw the caption text
-		rc.right -= 2; rc.top += 2;
+		rc.right -= 2; rc.top += 2; rc.left += 1;
 		setCaptionColor(hdc, active && (i == nTabSel));
 		DrawTextW(hdc, tabs[i]->name, -1, &rc, 0);
-	}
 		
+		if(rc.right+2 > clipRight()) {
+			goto RIGHT_ENABLE;
+		}
+	}
+	
+	// draw buttons
+	if(scroll) { int flags;
+	
+		// draw right button
+		flags = DFCS_SCROLLRIGHT|DFCS_INACTIVE;
+		if(0) { RIGHT_ENABLE: flags = DFCS_SCROLLRIGHT; }
+		int tmp = rc.left; rc.left = clipRight();
+		DrawFrameControl(hdc, &rc, DFC_SCROLL, flags);
+		rc.left = tmp;
+		
+		// draw left button 
+		flags = DFCS_SCROLLLEFT|DFCS_INACTIVE;
+		if(nTabScroll) flags = DFCS_SCROLLLEFT;
+		tmp = rc.right; rc.right = rc.left + scroll;
+		DrawFrameControl(hdc, &rc, DFC_SCROLL, flags);
+		rc.right = tmp;
+	}
+	
+	
 	ReleaseDC(hwnd, hdc);
 }
 

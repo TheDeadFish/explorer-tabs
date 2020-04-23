@@ -15,13 +15,15 @@ enum {
 void tabbar_regClass();
 void tabbar_msgRecv(UINT uMsg,
 	WPARAM wParam, LPARAM lParam);
+
 	
+struct TabBar;	
 struct tabbar_t
 {
 	HWND hwnd;
 	LPARAM lbPend;
+	TabBar *tabBar;
 };
 
-void tabbar_setProp(HWND hwnd, void* slot);
-tabbar_t* tabbar_getProp(HWND hwnd);
-void* tabbar_findTab();
+TabBar* tabbar_findTabBar();
+tabbar_t* tabbar_allocTab(HWND hwnd);

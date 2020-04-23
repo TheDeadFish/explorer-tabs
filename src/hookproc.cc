@@ -23,7 +23,7 @@ DWORD WINAPI ThreadProc(LPVOID lpParameter)
 	return 0;
 }
 
-void tabbar_setProp(HWND hwnd, void* slot) 
+void tabbar_setProp(HWND hwnd, tabbar_t* slot) 
 {
 	SetPropW(hwnd, MAKEINTATOM(
 		s_propAtom), (HANDLE)slot); 
@@ -41,12 +41,20 @@ void tabbar_init(void)
 	s_propAtom = GlobalAddAtomA("dfTabBar");
 }
 
-void tabbar_msgSend(HWND hwnd, int msg, void* arg=0)
-{
-	PostThreadMessage(s_idThread, msg, (WPARAM)hwnd, (LPARAM)arg);
-}
 
 #include <conio.h>
+
+void tabbar_msgSend(tabbar_t* tab, int msg, void* arg=0)
+{
+	if(tab) PostThreadMessage(s_idThread, 
+		msg, (WPARAM)tab, (LPARAM)arg);
+}
+
+void tabbar_msgSend(HWND hwnd, int msg, void* arg=0)
+{
+	tabbar_msgSend(tabbar_getProp(hwnd), msg, arg);
+}
+
 
 static
 LRESULT tabbar_mouse(HWND hwnd, UINT uMsg,
@@ -73,9 +81,16 @@ LRESULT tabbar_mouse(HWND hwnd, UINT uMsg,
 	}
 	
 	// mouse button up
-	tabbar_msgSend(hwnd, MSG_MOUSE, (void*)
+	tabbar_msgSend(This, MSG_MOUSE, (void*)
 		screnToWindow(hwnd, This->lbPend));
 	This->lbPend = 0; return 0;	
+}
+
+void tabbar_create(HWND hwnd)
+{
+	tabbar_t* This = tabbar_allocTab(hwnd);
+	tabbar_setProp(hwnd, This);
+	tabbar_msgSend(This, MSG_CREATE);
 }
 
 LRESULT CALLBACK tabbar_hookProc(HWND hwnd, 
@@ -93,7 +108,7 @@ LRESULT CALLBACK tabbar_hookProc(HWND hwnd,
 		
 	switch(uMsg) {
 	case WM_CREATE:
-		tabbar_msgSend(hwnd, MSG_CREATE); break;
+		tabbar_create(hwnd); break;
 	case WM_NCDESTROY:
 		tabbar_msgSend(hwnd, MSG_DESTROY); break;
 	case WM_SETTEXT:
@@ -111,19 +126,18 @@ static
 BOOL CALLBACK EnumWindowsProc(
 	HWND hwnd, LPARAM lParam)
 {
-	DWORD pid; void* tab;
+	DWORD pid; tabbar_t* tab;
 	if(IsWindowVisible(hwnd)) { 
 		GetWindowThreadProcessId(hwnd, &pid);
 		if((pid == GetCurrentProcessId())
-		&&(tab = tabbar_getProp(hwnd))) {
-			*(void**)lParam = tab; return FALSE; }
-	}
-	return TRUE;
+		&&(tab = tabbar_getProp(hwnd))&&(tab->tabBar)) {
+			*(void**)lParam = tab->tabBar; return FALSE; }
+	} return TRUE;
 }
 
-void* tabbar_findTab()
+TabBar* tabbar_findTabBar()
 {
-	void* tab = NULL;
+	TabBar* tab = NULL;
 	EnumWindows(EnumWindowsProc, (LPARAM)&tab);
 	return tab;	
 }

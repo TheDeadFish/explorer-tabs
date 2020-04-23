@@ -13,9 +13,12 @@ int s_gcyCaptionFontChar;
 struct TabBar
 {
 	struct Tab : tabbar_t {
-		TabBar *tabBar;
+		
 		
 		WCHAR *name, *path;
+		
+		void setName(WCHAR* name_) {
+			free(name); name = name_; }
 		
 		void remove() { tabBar->remove(this); }
 		void move() { tabBar->move(this); }
@@ -88,9 +91,6 @@ struct TabBar
 	
 	
 };
-
-static TabBar::Tab* tabbar_getTab(HWND hwnd) {
-	return (TabBar::Tab*)tabbar_getProp(hwnd); }
 	
 bool TabBar::getRect(RECT& x, int i)
 {
@@ -106,20 +106,13 @@ bool TabBar::getRect(RECT& x, int i)
 	
 void TabBar::add(Tab* tab)
 {
+	tab->tabBar = this; 
 	int iTab = nTabs;
 	tabs = (Tab**)realloc(tabs,
 		(++nTabs)*sizeof(Tab*));
 	tabs[iTab] = tab;
 	nWndWidth = INT_MIN;
 	switch_window(iTab);
-}
-
-void TabBar::add(HWND hwnd)
-{
-	Tab* tab = (Tab*)calloc(1, sizeof(Tab));
-	tab->tabBar = this; tab->hwnd = hwnd;
-	tabbar_setProp(hwnd, tab);
-	this->add(tab);
 }
 
 void TabBar::size(bool user)
@@ -196,27 +189,12 @@ TabBar* createTabBar(void)
 	return This;
 }
 
-static
-TabBar::Tab* findTab(void) { return 
-	(TabBar::Tab*)tabbar_findTab(); }
-
-TabBar* findTabBar(void)
+void tabbar_add(TabBar::Tab* tab)
 {
-	auto tab = findTab();
-	if(tab) return tab->tabBar;
-	return NULL;
-}
-
-void tabbar_create(HWND hwnd)
-{
-	TabBar* root = findTabBar();
+	TabBar* root = tabbar_findTabBar();
 	if(!root) root = createTabBar();
-	root->add(hwnd);
-	
+	root->add(tab);
 }
-
-
-
 
 void TabBar::draw(bool user)
 {
@@ -319,35 +297,24 @@ void TabBar::switch_window(int iTab)
 void tabbar_msgRecv(UINT uMsg,
 	WPARAM wParam, LPARAM lParam)
 {
-	HWND hwnd = (HWND)wParam;
-	if(uMsg == MSG_CREATE) { 
-		tabbar_create(hwnd); return; }
+	auto* tab = (TabBar::Tab*)wParam;
+	
+	_cprintf("msg: %X, %X\n", tab, uMsg);
+	
+	switch(uMsg) {
+	case MSG_CREATE: tabbar_add(tab); break;
+	case MSG_MOUSE: tab->mouse(lParam); break;
+	case MSG_TEXT: tab->setName((WCHAR*)lParam);
+	case MSG_DRAW: tab->draw(); break;
+	}
+}
 
-	auto* tab = tabbar_getTab(hwnd);
-	if(!tab) {
-		if(uMsg == MSG_TEXT) free((void*)lParam);
-		return ; }
-		
-	if(uMsg == MSG_MOUSE) {
-		tab->mouse(lParam);
-	}
-		
-		
-	if(uMsg == MSG_TEXT) {
-		tab->name = (WCHAR*)lParam; 
-		tab->draw(); }
-		
-	if(uMsg == MSG_DRAW) {
-	
-	
-	
-	
-	
-	
-	
-		if(tab->isSel()) {
-			tab->draw();  }
-	}
+tabbar_t* tabbar_allocTab(HWND hwnd)
+{
+	tabbar_t* tab = (tabbar_t*)
+		calloc(1, sizeof(TabBar::Tab));
+	tab->hwnd = hwnd;
+	return tab;
 }
 
 void tabbar_regClass(void)

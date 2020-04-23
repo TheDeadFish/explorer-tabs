@@ -22,8 +22,8 @@ struct TabBar;
 struct tabbar_t
 {
 	HWND hwnd;
-	LPARAM lbPend;
 	TabBar *tabBar;
+	bool lbPend;
 };
 
 TabBar* tabbar_findTabBar();

@@ -56,40 +56,22 @@ void tabbar_msgSend(HWND hwnd, int msg, void* arg=0)
 }
 
 
-static
-LRESULT tabbar_mouse(HWND hwnd, UINT uMsg,
-	WPARAM wParam, LPARAM lParam)
+void tabbar_mouse(HWND hwnd, LPARAM lParam)
 {
-	// get tab object
 	tabbar_t* This = tabbar_getProp(hwnd);
-	if(!This) return 0;
-	
-	// mouse button down
-	if(uMsg == WM_NCLBUTTONDOWN) {
-		if((wParam != HTCAPTION)
-		||(GetForegroundWindow() != hwnd)) {
-			This->lbPend = 0; return 0; }
-		This->lbPend = lParam; return 1;
+	if(This) This->lbPend = 1;
+	tabbar_prevProc(hwnd, WM_NCLBUTTONDOWN,
+		HTCAPTION, lParam);
+	if(This && This->lbPend) {
+		tabbar_msgSend(This, MSG_MOUSE, (void*)
+			screnToWindow(hwnd, lParam));
 	}
-	
-	// mouse move
-	if(This->lbPend == 0) return 0;
-	if(uMsg == WM_NCMOUSEMOVE) {
-		tabbar_prevProc(hwnd, WM_NCLBUTTONDOWN,
-			HTCAPTION, This->lbPend);
-		This->lbPend = 0; return 0;
-	}
-	
-	// mouse button up
-	tabbar_msgSend(This, MSG_MOUSE, (void*)
-		screnToWindow(hwnd, This->lbPend));
-	This->lbPend = 0; return 0;	
 }
 
 void tabbar_move(HWND hwnd)
 {
 	tabbar_t* This = tabbar_getProp(hwnd);
-	if(!This) return;
+	if(!This) return; This->lbPend = 0;
 	auto* wp = mallocT<WINDOWPLACEMENT>();
 	wp->length = sizeof(*wp);
 	GetWindowPlacement(hwnd, wp);
@@ -107,11 +89,10 @@ void tabbar_create(HWND hwnd)
 LRESULT CALLBACK tabbar_hookProc(HWND hwnd, 
 	UINT uMsg, WPARAM wParam, LPARAM lParam)
 {	
-	if((uMsg == WM_NCMOUSEMOVE)
-	||(uMsg == WM_NCLBUTTONDOWN)
-	||(uMsg == WM_NCLBUTTONUP)) {
-		IFRET(tabbar_mouse(hwnd, 
-			uMsg, wParam, lParam));
+	if((uMsg == WM_NCLBUTTONDOWN)
+	&&(wParam == HTCAPTION)) {
+		tabbar_mouse(hwnd, lParam);
+		return 0;
 	}
 
 	LRESULT lResult = tabbar_prevProc(

@@ -89,7 +89,7 @@ struct TabBar
 	void switch_window(int iTab);
 	
 	
-	
+	int tabIndex(Tab* tab);
 };
 	
 bool TabBar::getRect(RECT& x, int i)
@@ -137,50 +137,30 @@ void TabBar::size(bool user)
 		(nTabSel-nDispTab)+1, nTabSel);
 }
 
-#if 0
+int TabBar::tabIndex(Tab* tab)
+{
+	for(int i = 0; i < nTabs; i++) {
+		if(tabs[i] == tab) return i; }
+	__builtin_trap();
+}
 
 void TabBar::remove(Tab* tab)
 {
-	remove_before_root(firstTab, tab); free(tab);	
-	if(curTab == tab) curTab = NULL;
-	if(!firstTab) DestroyWindow(hwnd);
-}
-
-LRESULT CALLBACK tabbar_wndProc(HWND hwnd, 
-	UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	INIT_WND_CONTEXT(TabBar, This->hwnd = hwnd);
+	// switch to next tab
+	int iTab = tabIndex(tab);
+	_cprintf("remove: %d\n", iTab);
 	
 	
-	WNDMSG_SWITCH(
-	  ON_MESSAGE(WM_NCDESTROY, free(This))
-		ON_MESSAGE(WM_NCHITTEST, return HTCAPTION)
-	,)
+	if(iTab == nTabSel) {
+		switch_window((iTab+1 < nTabs) 
+			? iTab+1 : iTab-1); 
+	}
 	
-	return DefWindowProc(hwnd, uMsg, wParam, lParam);
+	// destroy tab
+	memcpy(tabs+iTab, tabs+iTab+1, 
+		sizeof(Tab)*(--nTabs-iTab));
+	free(tab);
 }
-
-static
-BOOL CALLBACK EnumWindowsProc(
-	HWND hwnd, LPARAM lParam)
-{
-	if((IsWindowVisible(hwnd))
-	&&(s_clssAtom == GetClassLong(hwnd, GCW_ATOM)))
-		*(HWND*)lParam = hwnd; return FALSE;
-	return TRUE;
-}
-
-TabBar* findTabBar(void)
-{
-	HWND hwnd = NULL;
-	EnumWindows(EnumWindowsProc, (LPARAM)&hwnd);
-	if(hwnd) return (TabBar*)
-		GetWindowLongPtr(hwnd, GWLP_USERDATA);
-	return NULL;
-}
-
-#endif
-
 
 TabBar* createTabBar(void)
 {
@@ -279,6 +259,9 @@ void TabBar::mouse(LPARAM lParam)
 
 void TabBar::switch_window(int iTab)
 {
+	_cprintf("switch_window: %d\n", iTab);
+
+	if(unsigned(iTab) >= nTabs) return;
 	int nTabSelPrev = nTabSel; nTabSel = iTab;
 	if(nTabSelPrev < 0) return;
 	HWND hNextWnd = tabs[nTabSel]->hwnd;
@@ -303,6 +286,7 @@ void tabbar_msgRecv(UINT uMsg,
 	
 	switch(uMsg) {
 	case MSG_CREATE: tabbar_add(tab); break;
+	case MSG_DESTROY: tab->remove(); break;
 	case MSG_MOUSE: tab->mouse(lParam); break;
 	case MSG_TEXT: tab->setName((WCHAR*)lParam);
 	case MSG_DRAW: tab->draw(); break;

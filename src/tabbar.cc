@@ -21,7 +21,18 @@ struct TabBar
 		void move() { tabBar->move(this); }
 		bool isSel() { return tabBar->isSel(this); }
 		void mouse(LPARAM lParam) { tabBar->mouse(lParam); }
+		
+		
+		void draw() { return tabBar->draw(); }
+		
+		
+		
 	};
+	
+	HWND selWnd() { return tabs[nTabSel]->hwnd; }
+	
+	
+	
 
 
 	Tab** tabs; int nTabs;
@@ -46,9 +57,8 @@ struct TabBar
 	
 	void move(Tab* tab);
 	
-	void draw(HWND hwnd);
-	
-	void size(HWND hwnd);
+	void draw(bool user=false);
+	void size(bool user=false);
 	
 	
 	RECT getRect() { return rc; }
@@ -68,7 +78,7 @@ struct TabBar
 		
 		
 		
-	RECT getRect(int i);
+	bool getRect(RECT& x, int i);
 	
 	void mouse(LPARAM lParam);
 	int hitTest(int xPos);
@@ -80,16 +90,16 @@ struct TabBar
 static TabBar::Tab* tabbar_getTab(HWND hwnd) {
 	return (TabBar::Tab*)tabbar_getProp(hwnd); }
 	
-RECT TabBar::getRect(int i)
+bool TabBar::getRect(RECT& x, int i)
 {
-	int x1 = rc.left+scroll; 
-	int x2 = rc.right-scroll;
-	if(i < 0) { swapReg(x1, x2);
-		if(i == -1) x1 = rc.left;
-		else x2 = rc.right; 
-	} else { x1 += (i-nTabScroll)*nTabWidth;
-		if((i+1) != nTabs) min_ref(x2, x1+nTabWidth); }
-	return {x1, rc.top, x2, rc.bottom};
+	x = {rc.left+scroll, rc.top, 
+		rc.right-scroll, rc.bottom};
+	x.left += (i-nTabScroll)*nTabWidth;
+	
+	int x2 = x.left+nTabWidth;
+	if(x.right < x2) return true;
+	if((i+1) != nTabs) x.right = x2;
+	return false;
 }
 	
 void TabBar::add(Tab* tab)
@@ -109,11 +119,12 @@ void TabBar::add(HWND hwnd)
 	this->add(tab);
 }
 
-void TabBar::size(HWND hwnd)
+void TabBar::size(bool user)
 {
+	HWND hwnd = selWnd();
 	int width = getWindowSize(hwnd).cx;
-	if(nWndWidth == width) return;
-	nWndWidth = width;
+	if((nWndWidth == width) && !user) 
+		return; nWndWidth = width;
 	rc = {23, 4, nWndWidth-58, 22};
 	width = rc.right-rc.left;
 		
@@ -125,9 +136,9 @@ void TabBar::size(HWND hwnd)
 		
 	// adjust nTabIndex
 	int nDispTab = (width-TAB_BTN_WIDTH*2) / nTabWidth;
-	max_ref(nTabScroll, nTabSel);
-	max_ref(nTabScroll, (nTabSel-nDispTab)+1);
-	min_ref(nTabScroll, nTabs-nDispTab);
+	min_max_ref(nTabScroll, 0, nTabs-nDispTab);
+	if(!user) min_max_ref(nTabScroll, 
+		(nTabSel-nDispTab)+1, nTabSel);
 }
 
 #if 0
@@ -204,13 +215,13 @@ void tabbar_create(HWND hwnd)
 
 
 
-void TabBar::draw(HWND hwnd)
+void TabBar::draw(bool user)
 {
-	if(!nTabs) return;
-	size(hwnd);
+	if(!nTabs) return; size(user);
 	if(nTabs < 2) return;
 
 	// erase background
+	HWND hwnd = selWnd();
 	HDC hdc = GetWindowDC(hwnd);
 	BOOL active = GetForegroundWindow() == hwnd;
 	FillCaptionGradient(hdc, &rc, active);
@@ -225,7 +236,8 @@ void TabBar::draw(HWND hwnd)
 	
 	for(int i = nTabScroll; i < nTabs; i++)
 	{	
-		RECT rc = getRect(i);
+		RECT rc; bool clip;
+		clip = getRect(rc, i);
 			
 		// draw the divider
 		if(i != nTabScroll) {
@@ -238,9 +250,7 @@ void TabBar::draw(HWND hwnd)
 		setCaptionColor(hdc, active && (i == nTabSel));
 		DrawTextW(hdc, tabs[i]->name, -1, &rc, 0);
 		
-		if(rc.right+2 > clipRight()) {
-			goto RIGHT_ENABLE;
-		}
+		if(clip) goto RIGHT_ENABLE;
 	}
 	
 	// draw buttons
@@ -272,15 +282,29 @@ int TabBar::hitTest(int xPos)
 		if(xPos < clipLeft()) return -1;
 		if(xPos >= clipRight()) return -2;
 		for(int i = nTabScroll; i < nTabs; i++) {
-			if(xInRect(getRect(i), xPos)) return i; }
+			RECT rc; getRect(rc, i);
+			if(xInRect(rc, xPos)) return i; }
 	} return INT_MIN;
 }
 
 void TabBar::mouse(LPARAM lParam)
 {
 	int hit = hitTest(GET_X_LPARAM(lParam));
+	if(hit < 0) {
+		if(hit == -1) { nTabScroll--; draw(true); }
+		if(hit == -2) { nTabScroll++; draw(true); }
 	
-	_cprintf("hit: %d\n", hit);
+	
+	
+	
+	
+	}
+	
+	
+	
+	
+	
+	//_cprintf("hit: %d\n", hit);
 	
 	
 	
@@ -307,11 +331,18 @@ void tabbar_msgRecv(UINT uMsg,
 		
 	if(uMsg == MSG_TEXT) {
 		tab->name = (WCHAR*)lParam; 
-		tab->tabBar->draw(hwnd); }
+		tab->draw(); }
 		
 	if(uMsg == MSG_DRAW) {
+	
+	
+	
+	
+	
+	
+	
 		if(tab->isSel()) {
-			tab->tabBar->draw(hwnd);  }
+			tab->draw();  }
 	}
 }
 

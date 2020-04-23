@@ -65,3 +65,6 @@ LPARAM screnToWindow(HWND hwnd, LPARAM lParam);
 static 
 bool xInRect(const RECT& rc, int x) {
 	return (x >= rc.left)&&(x < rc.right); }
+
+
+#define min_max_ref(val, low, hi) ({ min_ref(val, hi); max_ref(val, low); })

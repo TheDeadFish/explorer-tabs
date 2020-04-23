@@ -83,6 +83,8 @@ struct TabBar
 	void mouse(LPARAM lParam);
 	int hitTest(int xPos);
 	
+	void switch_window(int iTab);
+	
 	
 	
 };
@@ -104,11 +106,12 @@ bool TabBar::getRect(RECT& x, int i)
 	
 void TabBar::add(Tab* tab)
 {
-	nTabSel = nTabs;
+	int iTab = nTabs;
 	tabs = (Tab**)realloc(tabs,
 		(++nTabs)*sizeof(Tab*));
-	tabs[nTabSel] = tab;
+	tabs[iTab] = tab;
 	nWndWidth = INT_MIN;
+	switch_window(iTab);
 }
 
 void TabBar::add(HWND hwnd)
@@ -293,23 +296,23 @@ void TabBar::mouse(LPARAM lParam)
 	if(hit < 0) {
 		if(hit == -1) { nTabScroll--; draw(true); }
 		if(hit == -2) { nTabScroll++; draw(true); }
+	} else { switch_window(hit); }
+}
+
+void TabBar::switch_window(int iTab)
+{
+	if(nTabSel < 0) { nTabSel = iTab; return; }
 	
-	
-	
-	
-	
-	}
-	
-	
-	
-	
-	
-	//_cprintf("hit: %d\n", hit);
-	
-	
+	HWND hPrevWnd = tabs[nTabSel]->hwnd;
+	nTabSel = iTab;	
+	HWND hNextWnd = tabs[nTabSel]->hwnd;
 	
 
-
+	WINDOWPLACEMENT wp = {sizeof(WINDOWPLACEMENT)};
+	GetWindowPlacement(hPrevWnd, &wp);
+	ShowWindow(hPrevWnd, SW_MINIMIZE);	
+	SetWindowPlacement(hNextWnd, &wp);
+	SetForegroundWindow(hNextWnd);
 }
 
 void tabbar_msgRecv(UINT uMsg,

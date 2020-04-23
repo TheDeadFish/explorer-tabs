@@ -58,7 +58,8 @@ LRESULT tabbar_mouse(HWND hwnd, UINT uMsg,
 	
 	// mouse button down
 	if(uMsg == WM_NCLBUTTONDOWN) {
-		if(wParam != HTCAPTION) {
+		if((wParam != HTCAPTION)
+		||(GetForegroundWindow() != hwnd)) {
 			This->lbPend = 0; return 0; }
 		This->lbPend = lParam; return 1;
 	}

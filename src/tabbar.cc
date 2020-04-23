@@ -20,6 +20,7 @@ struct TabBar
 		void remove() { tabBar->remove(this); }
 		void move() { tabBar->move(this); }
 		bool isSel() { return tabBar->isSel(this); }
+		void mouse(LPARAM lParam) { tabBar->mouse(lParam); }
 	};
 
 
@@ -51,7 +52,13 @@ struct TabBar
 	
 	
 	RECT getRect() { return rc; }
+	
+	
+	
+	
 	int clipRight() { return rc.right-scroll; }
+	int clipLeft() { return rc.left+scroll; }
+	
 	
 	void add(Tab* tab);
 	
@@ -62,7 +69,11 @@ struct TabBar
 		
 		
 	RECT getRect(int i);
-		
+	
+	void mouse(LPARAM lParam);
+	int hitTest(int xPos);
+	
+	
 	
 };
 
@@ -195,8 +206,9 @@ void tabbar_create(HWND hwnd)
 
 void TabBar::draw(HWND hwnd)
 {
-	if(nTabs < 2) return;
+	if(!nTabs) return;
 	size(hwnd);
+	if(nTabs < 2) return;
 
 	// erase background
 	HDC hdc = GetWindowDC(hwnd);
@@ -253,17 +265,44 @@ void TabBar::draw(HWND hwnd)
 	ReleaseDC(hwnd, hdc);
 }
 
+
+int TabBar::hitTest(int xPos)
+{
+	if(xInRect(rc, xPos)) {
+		if(xPos < clipLeft()) return -1;
+		if(xPos >= clipRight()) return -2;
+		for(int i = nTabScroll; i < nTabs; i++) {
+			if(xInRect(getRect(i), xPos)) return i; }
+	} return INT_MIN;
+}
+
+void TabBar::mouse(LPARAM lParam)
+{
+	int hit = hitTest(GET_X_LPARAM(lParam));
+	
+	_cprintf("hit: %d\n", hit);
+	
+	
+	
+
+
+}
+
 void tabbar_msgRecv(UINT uMsg,
 	WPARAM wParam, LPARAM lParam)
 {
 	HWND hwnd = (HWND)wParam;
 	if(uMsg == MSG_CREATE) { 
 		tabbar_create(hwnd); return; }
-		
+
 	auto* tab = tabbar_getTab(hwnd);
 	if(!tab) {
 		if(uMsg == MSG_TEXT) free((void*)lParam);
 		return ; }
+		
+	if(uMsg == MSG_MOUSE) {
+		tab->mouse(lParam);
+	}
 		
 		
 	if(uMsg == MSG_TEXT) {

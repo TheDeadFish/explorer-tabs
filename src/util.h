@@ -1,5 +1,6 @@
 #pragma once
 #include <stdshit/min_max.h>
+#include <windowsx.h>
 
 WCHAR* getWindowText_(HWND hwnd);
 SIZE getWindowSize(HWND hwnd);
@@ -58,3 +59,9 @@ LONG WINAPI GdiGetCharDimensions(
 
 #define IFRET(x) if(auto y = x) return y;
 
+
+LPARAM screnToWindow(HWND hwnd, LPARAM lParam);
+
+static 
+bool xInRect(const RECT& rc, int x) {
+	return (x >= rc.left)&&(x < rc.right); }

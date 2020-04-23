@@ -52,10 +52,7 @@ static
 LRESULT tabbar_mouse(HWND hwnd, UINT uMsg,
 	WPARAM wParam, LPARAM lParam)
 {
-	// filter mouse message
-	if((uMsg != WM_NCMOUSEMOVE)
-	&&(uMsg != WM_NCLBUTTONDOWN)
-	&&(uMsg != WM_NCLBUTTONUP)) return 0;
+	// get tab object
 	tabbar_t* This = tabbar_getProp(hwnd);
 	if(!This) return 0;
 	
@@ -75,14 +72,21 @@ LRESULT tabbar_mouse(HWND hwnd, UINT uMsg,
 	}
 	
 	// mouse button up
-	_cprintf("button up\n");
-	This->lbPend = 0; return 0;
+	tabbar_msgSend(hwnd, MSG_MOUSE, (void*)
+		screnToWindow(hwnd, This->lbPend));
+	This->lbPend = 0; return 0;	
 }
 
 LRESULT CALLBACK tabbar_hookProc(HWND hwnd, 
 	UINT uMsg, WPARAM wParam, LPARAM lParam)
 {	
-	IFRET(tabbar_mouse(hwnd, uMsg, wParam, lParam));
+	if((uMsg == WM_NCMOUSEMOVE)
+	||(uMsg == WM_NCLBUTTONDOWN)
+	||(uMsg == WM_NCLBUTTONUP)) {
+		IFRET(tabbar_mouse(hwnd, 
+			uMsg, wParam, lParam));
+	}
+
 	LRESULT lResult = tabbar_prevProc(
 		hwnd, uMsg, wParam, lParam);
 		

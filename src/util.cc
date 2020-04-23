@@ -80,3 +80,12 @@ void setCaptionColor(HDC hdc, BOOL fActive)
 	} else { color = GetSysColor(COLOR_INACTIVECAPTIONTEXT); }
 	SetTextColor(hdc, color);
 }
+
+
+LPARAM screnToWindow(HWND hwnd, LPARAM lParam)
+{
+	RECT rc; GetWindowRect(hwnd, &rc);
+	int x = GET_X_LPARAM(lParam)-rc.left;
+  int y = GET_Y_LPARAM(lParam)-rc.top;	
+	return MAKELPARAM(x, y);
+}

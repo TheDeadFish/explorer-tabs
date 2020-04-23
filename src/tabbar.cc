@@ -21,7 +21,7 @@ struct TabBar
 			free(name); name = name_; }
 		
 		void remove() { tabBar->remove(this); }
-		void move() { tabBar->move(this); }
+		void move(WINDOWPLACEMENT* wp) { tabBar->move(this, wp); }
 		bool isSel() { return tabBar->isSel(this); }
 		void mouse(LPARAM lParam) { tabBar->mouse(lParam); }
 		
@@ -42,6 +42,9 @@ struct TabBar
 	int nTabScroll, nTabSel;
 	int nTabWidth, nWndWidth;
 	
+	WINDOWPLACEMENT wndPlace;
+	
+	
 	
 	
 	
@@ -58,7 +61,7 @@ struct TabBar
 	void remove(Tab* tab);
 	
 	
-	void move(Tab* tab);
+	void move(Tab* tab, WINDOWPLACEMENT* wp);
 	
 	void draw(bool user=false);
 	void size(bool user=false);
@@ -148,7 +151,7 @@ void TabBar::remove(Tab* tab)
 {
 	// switch to next tab
 	int iTab = tabIndex(tab);
-	_cprintf("remove: %d\n", iTab);
+	//_cprintf("remove: %d\n", iTab);
 	
 	
 	if(iTab == nTabSel) {
@@ -259,7 +262,7 @@ void TabBar::mouse(LPARAM lParam)
 
 void TabBar::switch_window(int iTab)
 {
-	_cprintf("switch_window: %d\n", iTab);
+	//_cprintf("switch_window: %d\n", iTab);
 
 	if(unsigned(iTab) >= nTabs) return;
 	int nTabSelPrev = nTabSel; nTabSel = iTab;
@@ -268,28 +271,36 @@ void TabBar::switch_window(int iTab)
 	HWND hPrevWnd = tabs[nTabSelPrev]->hwnd;
 	
 	if(hNextWnd != hPrevWnd) {
-		WINDOWPLACEMENT wp = {sizeof(WINDOWPLACEMENT)};
-		GetWindowPlacement(hPrevWnd, &wp);
 		ShowWindowAsync(hPrevWnd, SW_MINIMIZE);	
-		SetWindowPlacement(hNextWnd, &wp); 
+		SetWindowPlacement(hNextWnd, &wndPlace); 
 	}
 	
 	SetForegroundWindow(hNextWnd);
+}
+
+void TabBar::move(Tab* tab, WINDOWPLACEMENT* wp)
+{
+	//_cprintf("move: %X, %X, %d\n", tab, wp->showCmd, wp->rcNormalPosition.left);
+	if((wp->showCmd != SW_MINIMIZE)
+	&&(wp->rcNormalPosition.left < 10000)
+	&&(nTabSel == tabIndex(tab)))
+		wndPlace = *wp; 
+	free(wp);
 }
 
 void tabbar_msgRecv(UINT uMsg,
 	WPARAM wParam, LPARAM lParam)
 {
 	auto* tab = (TabBar::Tab*)wParam;
-	
-	_cprintf("msg: %X, %X\n", tab, uMsg);
-	
+
 	switch(uMsg) {
 	case MSG_CREATE: tabbar_add(tab); break;
 	case MSG_DESTROY: tab->remove(); break;
 	case MSG_MOUSE: tab->mouse(lParam); break;
 	case MSG_TEXT: tab->setName((WCHAR*)lParam);
 	case MSG_DRAW: tab->draw(); break;
+	case MSG_MOVE: tab->move((WINDOWPLACEMENT*)lParam);
+		break;
 	}
 }
 

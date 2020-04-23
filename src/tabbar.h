@@ -9,7 +9,8 @@ LRESULT CALLBACK tabbar_hookProc(HWND hwnd,
 enum {
 	MSG_CREATE = WM_APP, 
 	MSG_DESTROY, MSG_TEXT,
-	MSG_DRAW, MSG_MOUSE
+	MSG_DRAW, MSG_MOUSE, 
+	MSG_MOVE
 };
 
 void tabbar_regClass();

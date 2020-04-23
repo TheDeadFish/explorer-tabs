@@ -86,11 +86,22 @@ LRESULT tabbar_mouse(HWND hwnd, UINT uMsg,
 	This->lbPend = 0; return 0;	
 }
 
+void tabbar_move(HWND hwnd)
+{
+	tabbar_t* This = tabbar_getProp(hwnd);
+	if(!This) return;
+	auto* wp = mallocT<WINDOWPLACEMENT>();
+	wp->length = sizeof(*wp);
+	GetWindowPlacement(hwnd, wp);
+	tabbar_msgSend(This, MSG_MOVE, wp);
+}
+
 void tabbar_create(HWND hwnd)
 {
 	tabbar_t* This = tabbar_allocTab(hwnd);
 	tabbar_setProp(hwnd, This);
 	tabbar_msgSend(This, MSG_CREATE);
+	tabbar_move(hwnd);
 }
 
 LRESULT CALLBACK tabbar_hookProc(HWND hwnd, 
@@ -117,6 +128,8 @@ LRESULT CALLBACK tabbar_hookProc(HWND hwnd,
 	case WM_NCPAINT:
 	case WM_NCACTIVATE:
 		tabbar_msgSend(hwnd, MSG_DRAW); break;
+	case WM_WINDOWPOSCHANGED:
+		tabbar_move(hwnd);
 	}
 	
 	return lResult;

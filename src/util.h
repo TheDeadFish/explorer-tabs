@@ -68,3 +68,9 @@ bool xInRect(const RECT& rc, int x) {
 
 
 #define min_max_ref(val, low, hi) ({ min_ref(val, hi); max_ref(val, low); })
+
+
+
+template <class T>
+T* mallocT(size_t size=1) { return 
+	(T*)malloc(size*sizeof(T)); }

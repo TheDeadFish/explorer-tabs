@@ -301,17 +301,18 @@ void TabBar::mouse(LPARAM lParam)
 
 void TabBar::switch_window(int iTab)
 {
-	if(nTabSel < 0) { nTabSel = iTab; return; }
-	
-	HWND hPrevWnd = tabs[nTabSel]->hwnd;
-	nTabSel = iTab;	
+	int nTabSelPrev = nTabSel; nTabSel = iTab;
+	if(nTabSelPrev < 0) return;
 	HWND hNextWnd = tabs[nTabSel]->hwnd;
+	HWND hPrevWnd = tabs[nTabSelPrev]->hwnd;
 	
-
-	WINDOWPLACEMENT wp = {sizeof(WINDOWPLACEMENT)};
-	GetWindowPlacement(hPrevWnd, &wp);
-	ShowWindow(hPrevWnd, SW_MINIMIZE);	
-	SetWindowPlacement(hNextWnd, &wp);
+	if(hNextWnd != hPrevWnd) {
+		WINDOWPLACEMENT wp = {sizeof(WINDOWPLACEMENT)};
+		GetWindowPlacement(hPrevWnd, &wp);
+		ShowWindowAsync(hPrevWnd, SW_MINIMIZE);	
+		SetWindowPlacement(hNextWnd, &wp); 
+	}
+	
 	SetForegroundWindow(hNextWnd);
 }
 

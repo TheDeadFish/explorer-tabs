@@ -4,6 +4,9 @@
 #include <conio.h>
 #include "util.h"
 
+void TaskBar_Init(void);
+void TaskBar_Swap(HWND hNextWnd, HWND hPrevWnd);
+
 #define MIN_TAB_WIDTH 100
 #define TAB_BTN_WIDTH 16
 
@@ -270,6 +273,7 @@ void TabBar::switch_window(int iTab)
 	HWND hPrevWnd = lpTabSelPrev->hwnd;
 	
 	if(hNextWnd != hPrevWnd) {
+		TaskBar_Swap(hPrevWnd, hNextWnd);
 		ShowWindowAsync(hPrevWnd, SW_MINIMIZE);	
 		SetWindowPlacement(hNextWnd, &wndPlace); 
 	}
@@ -316,4 +320,5 @@ void tabbar_regClass(void)
 	s_hCaptionFont = getCaptionFont();
 	SIZE size = getFontDimention(s_hCaptionFont);
 	s_gcyCaptionFontChar = size.cy;
+	TaskBar_Init();
 }

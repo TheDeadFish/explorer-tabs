@@ -17,8 +17,14 @@ void hook_init(void)
 	
 	importDiscr id;
 	id.fromName("browseui.dll");
+	
+#ifdef _WIN64
+	id.setFunc("user32.dll", "RegisterClassW", 
+		&RegisterClassWrapW_hook, &RegisterClassWrapW);
+#else
 	id.setFunc("shlwapi.dll", (cch*)131, 
 		&RegisterClassWrapW_hook, &RegisterClassWrapW);
+#endif
 }
 
 

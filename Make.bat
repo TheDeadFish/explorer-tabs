@@ -1,1 +1,1 @@
-cmake_gcc
+cmake_gcc x64

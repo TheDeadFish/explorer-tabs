@@ -1,1 +1,1 @@
-start explorer.exe /separate
+start explorer_x64.exe /separate

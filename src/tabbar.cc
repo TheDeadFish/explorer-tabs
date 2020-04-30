@@ -32,14 +32,14 @@ struct TabBar
 		
 	};
 	
-	HWND selWnd() { return tabs[nTabSel]->hwnd; }
+	HWND selWnd() { return lpTabSel->hwnd; }
 	
 	
 	
 
 
-	Tab** tabs; int nTabs;
-	int nTabScroll, nTabSel;
+	Tab** tabs;	Tab* lpTabSel;
+	int nTabs; int nTabScroll;
 	int nTabWidth, nWndWidth;
 	
 	WINDOWPLACEMENT wndPlace;
@@ -79,9 +79,7 @@ struct TabBar
 	void add(Tab* tab);
 	
 	
-	bool isSel(Tab* tab) { return 
-		tabs[nTabSel] == tab; }
-		
+	bool isSel(Tab* tab) { return lpTabSel == tab; }
 		
 		
 	bool getRect(RECT& x, int i);
@@ -136,8 +134,9 @@ void TabBar::size(bool user)
 	// adjust nTabIndex
 	int nDispTab = (width-TAB_BTN_WIDTH*2) / nTabWidth;
 	min_max_ref(nTabScroll, 0, nTabs-nDispTab);
-	if(!user) min_max_ref(nTabScroll, 
-		(nTabSel-nDispTab)+1, nTabSel);
+	if(!user) { int nTabSel = tabIndex(lpTabSel);
+		min_max_ref(nTabScroll, (nTabSel-nDispTab)+1, nTabSel); 
+	}
 }
 
 int TabBar::tabIndex(Tab* tab)
@@ -154,7 +153,7 @@ void TabBar::remove(Tab* tab)
 	//_cprintf("remove: %d\n", iTab);
 	
 	
-	if(iTab == nTabSel) {
+	if(tab == lpTabSel) {
 		switch_window((iTab+1 < nTabs) 
 			? iTab+1 : iTab-1); 
 	}
@@ -211,7 +210,7 @@ void TabBar::draw(bool user)
 
 		// draw the caption text
 		rc.right -= 2; rc.top += 2; rc.left += 1;
-		setCaptionColor(hdc, active && (i == nTabSel));
+		setCaptionColor(hdc, active && (tabs[i] == lpTabSel));
 		DrawTextW(hdc, tabs[i]->name, -1, &rc, 0);
 		
 		if(clip) goto RIGHT_ENABLE;
@@ -265,10 +264,10 @@ void TabBar::switch_window(int iTab)
 	//_cprintf("switch_window: %d\n", iTab);
 
 	if(unsigned(iTab) >= nTabs) return;
-	int nTabSelPrev = nTabSel; nTabSel = iTab;
-	if(nTabSelPrev < 0) return;
-	HWND hNextWnd = tabs[nTabSel]->hwnd;
-	HWND hPrevWnd = tabs[nTabSelPrev]->hwnd;
+	Tab* lpTabSelPrev = lpTabSel; lpTabSel = tabs[iTab];
+	if(lpTabSelPrev == NULL) return;
+	HWND hNextWnd = lpTabSel->hwnd;
+	HWND hPrevWnd = lpTabSelPrev->hwnd;
 	
 	if(hNextWnd != hPrevWnd) {
 		ShowWindowAsync(hPrevWnd, SW_MINIMIZE);	
@@ -283,7 +282,7 @@ void TabBar::move(Tab* tab, WINDOWPLACEMENT* wp)
 	//_cprintf("move: %X, %X, %d\n", tab, wp->showCmd, wp->rcNormalPosition.left);
 	if((wp->showCmd != SW_MINIMIZE)
 	&&(wp->rcNormalPosition.left < 10000)
-	&&(nTabSel == tabIndex(tab)))
+	&&(lpTabSel == tab))
 		wndPlace = *wp; 
 	free(wp);
 }
